@@ -1,4 +1,4 @@
-# TicTacToe
+# Tic Tac Toe
 Developed by *Connell Reffo* 2023
 
 An A64 Assembly Tic Tac Toe Implementation.
