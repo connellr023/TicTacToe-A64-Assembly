@@ -6,9 +6,8 @@
 define(int_bytes, 4)					// 32-bit integer = 4 bytes
 define(bool_bytes, 1)					// Boolean value = 1 byte (smallest addressable unit)
 
-define(dim1, 3)						// First dimension of grid array
-define(dim2, 3)						// Second dimension of grid array
-define(grid_bytes, dim1 * dim2 * int_bytes)		// Bytes of memory used to store 3x3 grid array
+define(dim, 3)						// Dimension of square array
+define(grid_bytes, dim * dim * int_bytes)		// Bytes of memory used to store 3x3 grid array
 
 define(scanf_ret_s, 16)					// Will be stack offset for return address of scanf
 define(turn_s, scanf_ret_s + int_bytes)			// 0 if X turn; 1 if O turn
@@ -24,13 +23,13 @@ define(x_r, w20)					// Register to hold inputted x coordinate
 define(y_r, w21)					// Register to hold inputted y coordinate
 define(grid_base_r, x22)				// Register to hold base address of grid array
 define(offset_r, w23)					// Register to hold grid element offset address
-define(i_r, w24)
-define(j_r, w25)
-define(turn_char_r, w26)
+define(i_r, w24)					// Register to hold outer loop counter
+define(j_r, w25)					// Register to hold inner loop counter
+define(turn_char_r, w26)				// Register to hold current turn character
 
-define(x_char, 88)
-define(o_char, 79)
-define(grid_char, 46)
+define(x_char, 88)					// ASCII(88) = "X"
+define(o_char, 79)					// ASCII(79) = "O"
+define(grid_char, 46)					// ASCII(46) = "."
 
 
 clear_screen_sys_call:
@@ -44,6 +43,9 @@ x_pos_prompt_str:
 
 y_pos_prompt_str:
 	.string	"Enter a Y Position [0, 2]: "
+
+invalid_move_prompt_str:
+	.string	"Invalid Move Entered. Must Choose Available Space\n"
 
 scanf_fmt:
 	.string "%d"					// Format string for scanf; "%d" specifies decimal integer
@@ -80,18 +82,18 @@ init_grid_start:
 	mov	j_r, 0
 
 init_grid_outer_loop:
-	mov	w26, dim1				// w26 = dim1
+	mov	w26, dim				// w26 = dim
 	cmp	i_r, w26				// i_r < w26?
 	b.ge	next_turn_start				// Goto next_turn_start if not
 
 init_grid_inner_loop:
-	mov	w26, dim2				// w26 = dim2
+	mov	w26, dim				// w26 = dim
 	cmp	j_r, w26				// j_r < w26?
 	b.ge	init_grid_outer_end			// Goto init_grid_outer_end if not
 
-	mul	offset_r, i_r, w26			// offset_r = i_r * dim2
-	add	offset_r, offset_r, j_r			// offset_r = (i_r * dim2) + j_r
-	lsl	offset_r, offset_r, 2			// offset_r = ((i * dim2) + j_r) * 4
+	mul	offset_r, i_r, w26			// offset_r = i_r * dim
+	add	offset_r, offset_r, j_r			// offset_r = (i_r * dim) + j_r
+	lsl	offset_r, offset_r, 2			// offset_r = ((i_r * dim) + j_r) * 4
 
 	mov	w26, grid_char
 	str	w26, [grid_base_r, offset_r, sxtw]
@@ -115,18 +117,18 @@ next_turn_start:
 	mov	j_r, 0					// j_r = 0
 
 draw_grid_outer_loop:
-	mov	w26, dim1				// w26 = dim1
-	cmp	i_r, w26				// i_r < w26?
+	mov	w26, dim				// w26 = dim
+	cmp	i_r, w26				// i_r < dim?
 	b.ge	turn_condition				// Goto turn_condition if not
 
 draw_grid_inner_loop:
-	mov	w26, dim2				// w26 = dim2
+	mov	w26, dim				// w26 = dim
 	cmp	j_r, w26				// j_r < w26?
 	b.ge	draw_grid_outer_end			// Goto draw_grid_outer_end if not
 
-	mul	offset_r, i_r, w26			// offset_r = i_r * dim2
-	add	offset_r, offset_r, j_r			// offset_r = (i_r * dim2) + j_r
-	lsl	offset_r, offset_r, 2			// offset_r = ((i * dim2) + j_r) * 4
+	mul	offset_r, i_r, w26			// offset_r = i_r * dim
+	add	offset_r, offset_r, j_r			// offset_r = (i_r * dim) + j_r
+	lsl	offset_r, offset_r, 2			// offset_r = ((i_r * dim) + j_r) * 4
 
 	ldr	w0, [grid_base_r, offset_r, sxtw]	// w0 = grid[i][j]
 	bl	putchar					// Write grid character to standard output
@@ -177,13 +179,9 @@ turn_input_x:
 	cmp	x_r, w27				// x_r < 0?
 	b.lt	exit					// Exit if true
 
-	mov	w27, dim1				// w27 = dim1
-	cmp	x_r, w27				// x_r > dim1?
-	b.gt	cap_x
-	b	turn_input_y
-
-cap_x:
-	mov	x_r, (dim1 - 1)
+	mov	w27, dim
+	cmp	x_r, w27
+	b.gt	invalid_turn
 
 turn_input_y:
 	ldr	x0, =y_pos_prompt_str
@@ -198,29 +196,43 @@ turn_input_y:
 	cmp	y_r, w27				// y_r < 0?
 	b.lt	exit					// Exit if true
 
-	mov	w27, dim2				// w27 = dim2
-	cmp	y_r, w27				// y_r > dim2?
-	b.gt	cap_y
-	b	turn_end
+	mov	w27, dim
+	cmp	y_r, w27
+	b.gt	invalid_turn
 
-cap_y:
-	mov	y_r, (dim2 - 1)
+update_grid_condition:
+	mov	w27, dim					// w27 = dim
+	mul	offset_r, x_r, w27				// offset_r = x_r * dim
+	add	offset_r, offset_r, y_r				// offset_r = (x_r * dim) + y_r
+	lsl	offset_r, offset_r, 2				// offset_r = ((x_r * dim) + y_r) * 4
 
-turn_end:
-	mov	w27, dim2				// w27 = dim2
-	mul	offset_r, y_r, w27			// offset_r = y_r * dim2
-	add	offset_r, offset_r, x_r			// offset_r = (y_r * dim2) + x_r
-	lsl	offset_r, offset_r, 2			// offset_r = ((y_r * dim2) + x_r) * 4
+	ldr	w27, [grid_base_r, offset_r, sxtw]		// w27 = grid[x_r][y_r]
 
-	str	turn_char_r, [grid_base_r, offset_r, sxtw]
+	mov	w28, grid_char					// w28 = grid_char
+	cmp	w27, w28					// grid[x_r][y_r] == grid_char?
+	b.eq	valid_turn
 
-	mvn	turn_r, turn_r				// Flip every bit in turn_r
-	strb	turn_r, [fp, turn_s]			// turn = turn_r
+invalid_turn:
+	ldr	x0, =invalid_move_prompt_str
+	bl	printf
+
+	b	turn_condition
+
+valid_turn:
+	mvn	turn_r, turn_r					// Flip every bit in turn_r
+	strb	turn_r, [fp, turn_s]				// turn = turn_r
+
+	mov	w27, dim					// w27 = dim
+	mul	offset_r, y_r, w27				// offset_r = y_r * dim
+	add	offset_r, offset_r, x_r				// offset_r = (y_r * dim) + x_r
+	lsl	offset_r, offset_r, 2				// offset_r = ((y_r * dim) + x_r) * 4
+
+	str	turn_char_r, [grid_base_r, offset_r, sxtw]	// grid[y_r][x_r] = turn_char_r
 
 	ldr	x0, =clear_screen_sys_call
-	bl	system					// system("clear")
+	bl	system						// system("clear")
 
-	b	next_turn_start				// Goto next_turn_start
+	b	next_turn_start
 
 exit:
 	mov	x0, 0
