@@ -8,7 +8,7 @@
 <br />
 
 An A64 Assembly Tic Tac Toe Implementation.
-Tested on *Ampere Altra Q64-22* 64-bit CPU which implements the *ARMv8-A* instruction set.
+Tested on *Ampere Altra Q64-22* 64-bit CPU which utilizes the *ARMv8-A* architecture.
 
 # How to Run on a Linux Based System
 1. Clone from: *https://github.com/Crisp32/TicTacToe-A64-Assembly.git*
