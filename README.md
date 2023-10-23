@@ -1,5 +1,9 @@
 # Tic Tac Toe
-Developed by *Connell Reffo* 2023
+
+<div align="left">
+	<img src="https://img.shields.io/badge/language-A64 Assembly-yellow">
+	<img src="https://img.shields.io/badge/developer-Connell Reffo-red">
+</div>
 
 An A64 Assembly Tic Tac Toe Implementation.
 Tested on *Ampere Altra Q64-22* 64-bit CPU which implements the *ARMv8-A* instruction set.
