@@ -5,6 +5,8 @@
 	<img src="https://img.shields.io/badge/developer-Connell Reffo-red">
 </div>
 
+<br />
+
 An A64 Assembly Tic Tac Toe Implementation.
 Tested on *Ampere Altra Q64-22* 64-bit CPU which implements the *ARMv8-A* instruction set.
 
